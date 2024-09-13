@@ -11,6 +11,8 @@ import {
 } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { Document } from '@langchain/core/documents';
+import { QdrantVectorStore } from "@langchain/qdrant";
+import { OpenAIEmbeddings } from "@langchain/openai";
 import { searchSearxng } from '../lib/searxng';
 import type { StreamEvent } from '@langchain/core/tracers/log_stream';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
@@ -20,6 +22,7 @@ import eventEmitter from 'events';
 import computeSimilarity from '../utils/computeSimilarity';
 import logger from '../utils/logger';
 import { IterableReadableStream } from '@langchain/core/utils/stream';
+import { getQdrantApiKey, getQdrantApiEndpoint, getOpenaiApiKey } from '../config';
 
 const basicKnowledgeBaseSearchRetrieverPrompt = `
 You will be given a conversation below and a follow up question. You need to rephrase the follow-up question if needed so it is a standalone question that can be used by the LLM to search the web for information.
@@ -103,7 +106,7 @@ type BasicChainInput = {
   query: string;
 };
 
-const createBasicKnowledgeBaseSearchRetrieverChain = (llm: BaseChatModel) => {
+const createBasicKnowledgeBaseSearchRetrieverChain = (llm: BaseChatModel, embeddings: Embeddings) => {
   return RunnableSequence.from([
     PromptTemplate.fromTemplate(basicKnowledgeBaseSearchRetrieverPrompt),
     llm,
@@ -113,17 +116,32 @@ const createBasicKnowledgeBaseSearchRetrieverChain = (llm: BaseChatModel) => {
         return { query: '', docs: [] };
       }
 
-      const documents = [
-        new Document({
-          pageContent: 'Wenkun Li is 32 years old. She is a Board Member at gnomondigital',
-          metadata: {
-            title: 'Wenkun Li is 32 years old. She is a Board Member at gnomondigital',
-            url: 'https://en.wikipedia.org/wiki/Wenkun_Li',
-          },
-        })
-      ]
+      const url = getQdrantApiEndpoint();
+      const apiKey = getQdrantApiKey();
 
-      return { query: input, docs: documents };
+      const vectorStore = await QdrantVectorStore.fromExistingCollection(
+        embeddings,
+        {
+          url: url,
+          apiKey: apiKey,
+          collectionName: "demo",
+          contentPayloadKey: 'page_content'
+        }
+      );
+
+      const documents = await vectorStore.similaritySearch(input, 5);
+
+      const documentsMetadata = documents.map((doc) => new Document({ 
+        pageContent: doc.pageContent,
+        metadata: {
+          title: doc.pageContent.substring(0, 100),
+          url: 'demo',
+        }
+      }));
+
+      logger.info(`Retrieved ${documents.length} documents from Qdrant.`);
+
+      return { query: input, docs: documentsMetadata };
     }),
   ]);
 };
@@ -133,7 +151,7 @@ const createBasicKnowledgeBaseSearchAnsweringChain = (
   embeddings: Embeddings,
 ) => {
   const basicKnowledgeBaseSearchRetrieverChain =
-    createBasicKnowledgeBaseSearchRetrieverChain(llm);
+    createBasicKnowledgeBaseSearchRetrieverChain(llm, embeddings);
 
   const processDocs = async (docs: Document[]) => {
     return docs
