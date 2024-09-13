@@ -60,6 +60,12 @@ const focusModes = [
       />
     ),
   },
+  {
+    key: 'knowledgeBaseSearch',
+    title: 'Personal KnowledgeBase',
+    description: 'Search in your personal knowledge base',
+    icon: <SwatchBook size={20} />,
+  },
 ];
 
 const Focus = ({

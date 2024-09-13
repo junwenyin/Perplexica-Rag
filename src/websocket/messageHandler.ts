@@ -6,6 +6,7 @@ import handleWritingAssistant from '../agents/writingAssistant';
 import handleWolframAlphaSearch from '../agents/wolframAlphaSearchAgent';
 import handleYoutubeSearch from '../agents/youtubeSearchAgent';
 import handleRedditSearch from '../agents/redditSearchAgent';
+import handleKnowledgeBaseSearch from '../agents/knowledgeBaseSearchAgent';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import type { Embeddings } from '@langchain/core/embeddings';
 import logger from '../utils/logger';
@@ -35,6 +36,7 @@ const searchHandlers = {
   wolframAlphaSearch: handleWolframAlphaSearch,
   youtubeSearch: handleYoutubeSearch,
   redditSearch: handleRedditSearch,
+  knowledgeBaseSearch: handleKnowledgeBaseSearch,
 };
 
 const handleEmitterEvents = (
