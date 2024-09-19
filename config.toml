@@ -1,0 +1,14 @@
+[API_KEYS]
+OPENAI = "sk-xx"
+GROQ = ""
+ANTHROPIC = ""
+QDRANT = "xx"
+
+[API_ENDPOINTS]
+OLLAMA = ""
+SEARXNG = "http://localhost:32768"
+QDRANT = "http://localhost:6333"
+
+[GENERAL]
+PORT = 3_001
+SIMILARITY_MEASURE = "cosine"
